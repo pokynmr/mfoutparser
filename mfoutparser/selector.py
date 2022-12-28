@@ -45,7 +45,7 @@ def get_data_selection(dataframe, selector_dict, selector_type='==', copy=True):
         else:
             selector_string = ' '.join(['table[key]', selector_type, 'value'])
 
-        table = table.ix[eval(selector_string)]
+        table = table.loc[eval(selector_string)]
 
     # Clean up the index numbers if appropriate
     if copy and (None in table.index.names) and (len(table.index.names) == 1):
