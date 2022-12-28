@@ -251,24 +251,24 @@ def _split_loop_and_tag_text(text_list):
     
     # This column determines if text contains a _tag
     text_df[u'tag'] = False
-    text_df.ix[text_df.text.str.contains('_\w+',regex=True),u'tag'] = True
+    text_df.loc[text_df.text.str.contains('_\w+',regex=True),u'tag'] = True
 
     # This column determines if text contains a loop tag (loop_)
     text_df[u'loop'] = False
-    text_df.ix[text_df.text.str.contains('loop_'),u'loop'] = True
+    text_df.loc[text_df.text.str.contains('loop_'),u'loop'] = True
     
     # The line below the tag is always part of the tag group
-    text_df.ix[text_df.ix[text_df.loop].index+1, u'loop'] = True
+    text_df.loc[text_df.loc[text_df.loop].index+1, u'loop'] = True
 
     # Any row that doesn't contain a tag and is not currently part of a loop
     # must also be part of a loop
-    text_df.ix[(text_df.tag==False)&(text_df.loop!=True),u'loop'] = True
+    text_df.loc[(text_df.tag==False)&(text_df.loop!=True),u'loop'] = True
     
     # Separate the data that is not part of a loop
-    text_df_tags = text_df.ix[text_df.loop==False, u'text'].tolist()
+    text_df_tags = text_df.loc[text_df.loop==False, u'text'].tolist()
     
     # Separate the data that is part of a loop
-    text_df_loop = text_df.ix[text_df.loop==True, u'text'].tolist()
+    text_df_loop = text_df.loc[text_df.loop==True, u'text'].tolist()
 
     return text_df_loop, text_df_tags
 
@@ -331,7 +331,7 @@ def _set_loops(loop_data):
     """
     # Initiate a loop column with 1 for each loop tag
     loop_data[u'loop'] = 0
-    loop_data.ix[loop_data.text.str.contains(u'loop_'),u'loop'] = 1
+    loop_data.loc[loop_data.text.str.contains(u'loop_'),u'loop'] = 1
 
     # Ensure the index is linear, but set it up so the original
     # index can be replaced
@@ -340,7 +340,7 @@ def _set_loops(loop_data):
     index_column = list(set(loop_data.columns) - set(old_columns))
     
     # Get the difference between index positions of the loop tags
-    loop_index = loop_data.ix[loop_data.loop==1].index
+    loop_index = loop_data.loc[loop_data.loop==1].index
     loop_diff = loop_index[1:] - loop_index[:-1]
 
     # For nested loops, the difference 
@@ -348,7 +348,7 @@ def _set_loops(loop_data):
     for idx,diff in zip(loop_index[:-1],loop_diff):
         if diff <= 2:
             depth += 1
-            loop_data.ix[idx,u'loop'] += depth
+            loop_data.loc[idx,u'loop'] += depth
         else:
             depth = 0
             
@@ -377,11 +377,11 @@ def _set_labels(loop_data):
     index_column = list(set(loop_data.columns) - set(old_columns))
     
     # The non-zero values of the loops and their new index
-    tag_values = loop_data.ix[loop_data.loop !=0,u'loop'].tolist()
-    tag_index = loop_data.ix[loop_data.loop !=0].index + 1
+    tag_values = loop_data.loc[loop_data.loop !=0,u'loop'].tolist()
+    tag_index = loop_data.loc[loop_data.loop !=0].index + 1
 
     loop_data[u'tag'] = 0
-    loop_data.ix[tag_index, u'tag'] = tag_values
+    loop_data.loc[tag_index, u'tag'] = tag_values
     
     # Reset the index
     loop_data.set_index(index_column, drop=True)
@@ -402,7 +402,7 @@ def _set_stops(loop_data):
 
     # Set the text that contains stops
     loop_data[u'stop'] = 0
-    loop_data.ix[loop_data.text.str.contains(u'stop_'),u'stop'] = 1
+    loop_data.loc[loop_data.text.str.contains(u'stop_'),u'stop'] = 1
     
     return loop_data
 
@@ -417,19 +417,19 @@ def _set_values(loop_data):
     """
     
     # These are the indexes of all the data that are unassigned
-    value_indexes = loop_data.ix[(loop_data.loop==0)&(loop_data.tag==0)&(loop_data.stop==0)].index
+    value_indexes = loop_data.loc[(loop_data.loop==0)&(loop_data.tag==0)&(loop_data.stop==0)].index
     loop_data[u'value'] = 0
-    loop_data.ix[value_indexes,u'value'] = 1
+    loop_data.loc[value_indexes,u'value'] = 1
     
     # These are the indexes of data who follow either a loop, label, or stop tag
-    value_indexes_begin = loop_data.ix[(value_indexes-1)].ix[loop_data.value==0].index + 1
+    value_indexes_begin = loop_data.loc[(value_indexes-1)].loc[loop_data.value==0].index + 1
     
     # The first rows of each data correspond to data for their respective loops
     loop_max = loop_data.loop.max()
     loop_range = np.arange(loop_max-1, -1, -1)
     
     for idx in value_indexes_begin:
-        loop_data.ix[idx:idx+len(loop_range)-1,u'value'] += loop_range
+        loop_data.loc[idx:idx+len(loop_range)-1,u'value'] += loop_range
     
     return loop_data
 
@@ -448,7 +448,7 @@ def _extract_loop_data(loop_data):
     max_level = loop_data.loop.max()
 
     # Arrays of the start and stop indices for the outermost loops
-    loop_index_begin = loop_data.ix[loop_data.loop==max_level].index
+    loop_index_begin = loop_data.loc[loop_data.loop==max_level].index
     loop_index_end = np.append(loop_index_begin[1:]-1, [len(loop_data)])
 
     # Loop through all the outermost loops splitting data and converting into tables for all lower levels
@@ -456,9 +456,9 @@ def _extract_loop_data(loop_data):
     for lim in list(zip(loop_index_begin, loop_index_end)):
 
         # The data for this slice
-        level_data = loop_data.ix[lim[0]:lim[1]]
+        level_data = loop_data.loc[lim[0]:lim[1]]
         # The indices for the innermost level of data
-        level_data_index = level_data.ix[level_data.value==1].index
+        level_data_index = level_data.loc[level_data.value==1].index
 
         # Pull out the tags and values for each level and put into a table
         inner_df_list = list()
@@ -466,8 +466,8 @@ def _extract_loop_data(loop_data):
         for level in range(max_level, 0, -1):
 
             # The tag list and the values
-            tag_list = level_data.ix[level_data.tag==level,u'text'].apply(lambda x: re.split(r"""\s+""",x))
-            value_list = level_data.ix[level_data.value==level,u'text'].apply(lambda x: re.split(r"""\s+""",x))
+            tag_list = level_data.loc[level_data.tag==level,u'text'].apply(lambda x: re.split(r"""\s+""",x))
+            value_list = level_data.loc[level_data.value==level,u'text'].apply(lambda x: re.split(r"""\s+""",x))
 
             # Stuff the tags and values into a table
             inner_df = pd.DataFrame(value_list.tolist(), columns=tag_list.tolist()[0], index=value_list.index)
@@ -478,7 +478,7 @@ def _extract_loop_data(loop_data):
         outer_df = pd.concat(inner_df_list).sort_index().fillna(method=u'ffill')
 
         # Select just the innermost level data since the outer level data has been filled in
-        outer_df = outer_df.ix[level_data_index]
+        outer_df = outer_df.loc[level_data_index]
 
         # Reorder the data columns
         outer_df = DataFrame(outer_df, columns=inner_df_columns).reset_index(drop=True)
